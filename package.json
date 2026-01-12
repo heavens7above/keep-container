@@ -1,11 +1,35 @@
 {
-    "name": "keep-auth-test",
+    "name": "keep-quote-bot",
     "version": "1.0.0",
+    "description": "AI-powered Google Keep automation for daily quotes",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js",
+        "test": "node test/test.js",
+        "profile:export": "node scripts/export-profile.js"
+    },
+    "keywords": [
+        "google-keep",
+        "automation",
+        "gemini-ai",
+        "playwright"
+    ],
+    "author": "Your Name",
+    "license": "MIT",
     "dependencies": {
         "@google-cloud/storage": "^7.0.0",
-        "@google/generative-ai": "^0.17.0",
-        "playwright": "1.57.0",
-        "unzipper": "^0.10.11",
-        "express": "^4.19.2"
+        "@google/generative-ai": "^0.21.0",
+        "playwright": "^1.57.0",
+        "unzipper": "^0.10.12",
+        "express": "^4.19.2",
+        "dotenv": "^16.4.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.0"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "npm": ">=8.0.0"
     }
 }
