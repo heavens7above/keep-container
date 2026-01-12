@@ -8,6 +8,23 @@ const app = express();
 const port = process.env.PORT || 8080;
 const storage = new Storage();
 
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+async function generateQuote() {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  const prompt = `
+Generate ONE short, original, thoughtful quote.
+Tone: sharp, reflective, non-cliché.
+No emojis.
+Max 2 lines.
+`;
+
+  const result = await model.generateContent(prompt);
+  return result.response.text().trim();
+}
+
 app.get('/', async (req, res) => {
     try {
         const bucketName = 'keep-profile-store';
