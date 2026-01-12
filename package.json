@@ -1,23 +1,20 @@
 {
-    "name": "keep-quote-bot",
-    "version": "1.0.0",
-    "description": "Google Keep automation with Playwright",
-    "main": "index.js",
-    "scripts": {
-        "start": "node index.js",
-        "dev": "nodemon index.js",
-        "test": "node test.js",
-        "docker:build": "docker build -t keep-bot .",
-        "docker:run": "docker run -p 8080:8080 keep-bot"
-    },
-    "dependencies": {
-        "@google-cloud/storage": "^7.0.0",
-        "@google/generative-ai": "^0.21.0",
-        "playwright": "^1.57.0",
-        "unzipper": "^0.10.12",
-        "express": "^4.19.2"
-    },
-    "devDependencies": {
-        "nodemon": "^3.1.0"
-    }
+  "name": "keep-quote-bot",
+  "version": "1.0.0",
+  "description": "Google Keep automation with Playwright",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/storage": "^7.0.0",
+    "@google/generative-ai": "^0.21.0",
+    "playwright": "^1.57.0",
+    "unzipper": "^0.10.12",
+    "express": "^4.19.2"
+  }
 }
