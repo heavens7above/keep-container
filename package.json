@@ -1,27 +1,14 @@
 {
     "name": "keep-quote-bot",
-    "version": "2.0.0",
-    "description": "Bulletproof AI-powered Google Keep automation for daily quotes",
+    "version": "1.0.0",
+    "description": "Google Keep automation with Playwright",
     "main": "index.js",
     "scripts": {
         "start": "node index.js",
-        "dev": "NODE_ENV=development nodemon index.js",
-        "test": "node test/test.js",
-        "lint": "eslint .",
-        "profile:export": "node scripts/export-profile.js"
-    },
-    "keywords": [
-        "google-keep",
-        "automation",
-        "gemini-ai",
-        "playwright",
-        "cloud-run",
-        "scheduler"
-    ],
-    "author": "Your Name",
-    "license": "MIT",
-    "engines": {
-        "node": ">=18.0.0"
+        "dev": "nodemon index.js",
+        "test": "node test.js",
+        "docker:build": "docker build -t keep-bot .",
+        "docker:run": "docker run -p 8080:8080 keep-bot"
     },
     "dependencies": {
         "@google-cloud/storage": "^7.0.0",
@@ -31,7 +18,6 @@
         "express": "^4.19.2"
     },
     "devDependencies": {
-        "nodemon": "^3.1.0",
-        "eslint": "^9.0.0"
+        "nodemon": "^3.1.0"
     }
 }
