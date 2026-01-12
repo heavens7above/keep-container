@@ -12,299 +12,34 @@ const storage = new Storage();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Configuration
-const CONFIG = {
-    BUCKET_NAME: process.env.BUCKET_NAME || 'keep-profile-store',
-    MAX_RETRIES: 3
-};
-
-// Logging utility
+// Logging function
 function log(message, level = 'INFO') {
     const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] [${level}] ${message}`;
-    console.log(logMessage);
+    console.log(`[${timestamp}] [${level}] ${message}`);
 }
 
-// Simple quote generator (for testing)
-async function generateQuote() {
-    try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = "Generate a short inspirational quote about technology.";
-        const result = await model.generateContent(prompt);
-        return result.response.text().trim();
-    } catch (error) {
-        log(`Quote generation failed: ${error.message}`, 'ERROR');
-        return "Technology is best when it brings people together. - Tech Wisdom";
-    }
-}
-
-// Test Playwright installation
-async function testPlaywright() {
-    let browser = null;
-    try {
-        log('Testing Playwright installation...');
-        
-        // Check if Chrome is available
-        const chromePath = process.env.CHROME_BIN || '/usr/bin/google-chrome-stable';
-        if (fs.existsSync(chromePath)) {
-            log(`Chrome found at: ${chromePath}`);
-        } else {
-            log('Chrome not found at default path', 'WARN');
-        }
-        
-        // Try to launch browser
-        log('Attempting to launch browser...');
-        browser = await chromium.launch({ 
-            headless: true,
-            args: ['--no-sandbox', '--disable-dev-shm-usage']
-        });
-        
-        const page = await browser.newPage();
-        log('Browser launched successfully!');
-        
-        // Test navigation
-        log('Testing navigation to example.com...');
-        await page.goto('https://example.com', { timeout: 30000 });
-        const title = await page.title();
-        log(`Successfully navigated to: ${title}`);
-        
-        await browser.close();
-        return { success: true, title };
-        
-    } catch (error) {
-        log(`Playwright test failed: ${error.message}`, 'ERROR');
-        if (browser) await browser.close();
-        return { success: false, error: error.message };
-    }
-}
-
-// Test Google Cloud Storage
-async function testStorage() {
-    try {
-        log('Testing Google Cloud Storage...');
-        const [buckets] = await storage.getBuckets();
-        log(`Found ${buckets.length} buckets`);
-        
-        // Check if our profile exists
-        const bucket = storage.bucket(CONFIG.BUCKET_NAME);
-        const [files] = await bucket.getFiles();
-        const profileExists = files.some(f => f.name === 'profile.zip');
-        
-        log(`Profile.zip exists: ${profileExists}`);
-        return { 
-            success: true, 
-            bucketCount: buckets.length,
-            profileExists 
-        };
-    } catch (error) {
-        log(`Storage test failed: ${error.message}`, 'ERROR');
-        return { success: false, error: error.message };
-    }
-}
-
-// Test endpoint
-app.get('/test', async (req, res) => {
-    log('=== STARTING COMPREHENSIVE TEST ===');
-    
-    const results = {
-        timestamp: new Date().toISOString(),
-        environment: {
-            NODE_ENV: process.env.NODE_ENV,
-            HAS_GEMINI_KEY: !!process.env.GEMINI_API_KEY,
-            BUCKET_NAME: CONFIG.BUCKET_NAME,
-            PORT: port
-        },
-        tests: {}
-    };
-    
-    try {
-        // Test 1: Basic system
-        log('Test 1: Basic system check...');
-        results.tests.system = {
-            nodeVersion: process.version,
-            platform: process.platform,
-            memory: process.memoryUsage(),
-            uptime: process.uptime()
-        };
-        
-        // Test 2: File system
-        log('Test 2: File system check...');
-        const tmpDir = '/tmp';
-        const canWrite = fs.existsSync(tmpDir);
-        results.tests.filesystem = { tmpExists: canWrite };
-        
-        if (canWrite) {
-            const testFile = path.join(tmpDir, 'test-write.txt');
-            fs.writeFileSync(testFile, 'test');
-            results.tests.filesystem.canWrite = fs.existsSync(testFile);
-            fs.unlinkSync(testFile);
-        }
-        
-        // Test 3: Playwright
-        log('Test 3: Playwright check...');
-        results.tests.playwright = await testPlaywright();
-        
-        // Test 4: Storage
-        log('Test 4: Google Cloud Storage check...');
-        results.tests.storage = await testStorage();
-        
-        // Test 5: Gemini
-        log('Test 5: Gemini API check...');
-        try {
-            const quote = await generateQuote();
-            results.tests.gemini = { success: true, quote: quote.substring(0, 100) };
-        } catch (error) {
-            results.tests.gemini = { success: false, error: error.message };
-        }
-        
-        log('=== TESTS COMPLETED ===');
-        res.json({ success: true, results });
-        
-    } catch (error) {
-        log(`Test endpoint error: ${error.message}`, 'ERROR');
-        res.status(500).json({ 
-            success: false, 
-            error: error.message,
-            results 
-        });
-    }
-});
-
-// Health endpoint
+// Simple health check
 app.get('/health', (req, res) => {
+    log('Health check requested');
     res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
         service: 'Google Keep Bot',
-        version: '1.0.0'
+        environment: {
+            node: process.version,
+            hasGeminiKey: !!process.env.GEMINI_API_KEY,
+            bucketName: process.env.BUCKET_NAME || 'not-set'
+        }
     });
 });
 
-// Main Google Keep automation endpoint (SIMPLIFIED VERSION)
-app.post('/scheduled-quote', async (req, res) => {
-    log('=== STARTING SCHEDULED QUOTE JOB ===');
+// Test Playwright installation
+app.get('/test-playwright', async (req, res) => {
+    log('Testing Playwright installation');
     
+    let browser = null;
     try {
-        // Step 1: Generate quote
-        log('Generating quote...');
-        const quote = await generateQuote();
-        log(`Quote generated: ${quote.substring(0, 100)}...`);
-        
-        // Step 2: Download profile
-        log('Downloading Chrome profile...');
-        const bucket = storage.bucket(CONFIG.BUCKET_NAME);
-        const zipPath = '/tmp/profile.zip';
-        const profileDir = '/tmp/profile';
-        
-        // Clean up
-        if (fs.existsSync(profileDir)) {
-            fs.rmSync(profileDir, { recursive: true });
-        }
-        
-        // Download
-        await bucket.file('profile.zip').download({ destination: zipPath });
-        log('Profile downloaded');
-        
-        // Extract
-        fs.mkdirSync(profileDir, { recursive: true });
-        await new Promise((resolve, reject) => {
-            fs.createReadStream(zipPath)
-                .pipe(unzipper.Extract({ path: profileDir }))
-                .on('close', resolve)
-                .on('error', reject);
-        });
-        log('Profile extracted');
-        
-        // Step 3: Launch browser with profile
-        log('Launching browser with profile...');
-        const browser = await chromium.launchPersistentContext(profileDir, {
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--disable-software-rasterizer'
-            ]
-        });
-        
-        const page = await browser.newPage();
-        
-        // Step 4: Navigate to Google Keep
-        log('Navigating to Google Keep...');
-        await page.goto('https://keep.google.com', { 
-            waitUntil: 'networkidle',
-            timeout: 60000 
-        });
-        
-        // Wait for page to load
-        await page.waitForTimeout(5000);
-        
-        // Take screenshot for debugging
-        const screenshotPath = '/tmp/keep-page.png';
-        await page.screenshot({ path: screenshotPath });
-        log(`Screenshot saved: ${screenshotPath}`);
-        
-        // Step 5: Check if logged in
-        const isLoggedIn = await page.evaluate(() => {
-            return !!document.querySelector('div[aria-label="Take a note"]') ||
-                   !!document.querySelector('textarea');
-        });
-        
-        if (!isLoggedIn) {
-            throw new Error('Not logged into Google Keep');
-        }
-        
-        log('Successfully logged in!');
-        
-        // Step 6: Create note
-        log('Creating new note...');
-        await page.click('div[aria-label="Take a note"]');
-        await page.waitForTimeout(1000);
-        
-        // Type quote
-        log('Typing quote...');
-        await page.keyboard.type(quote);
-        await page.waitForTimeout(1000);
-        
-        // Save note
-        await page.keyboard.press('Escape');
-        await page.waitForTimeout(3000);
-        
-        log('Note created successfully!');
-        
-        // Cleanup
-        await browser.close();
-        fs.rmSync(profileDir, { recursive: true });
-        fs.unlinkSync(zipPath);
-        
-        log('=== JOB COMPLETED SUCCESSFULLY ===');
-        
-        res.json({
-            success: true,
-            message: 'Quote added to Google Keep',
-            quote: quote,
-            timestamp: new Date().toISOString()
-        });
-        
-    } catch (error) {
-        log(`Job failed: ${error.message}`, 'ERROR');
-        log(`Stack: ${error.stack}`, 'ERROR');
-        
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-// Quick test endpoint
-app.get('/quick-test', async (req, res) => {
-    log('Quick test requested');
-    
-    try {
-        // Just test if we can launch browser
-        const browser = await chromium.launch({ 
+        browser = await chromium.launch({ 
             headless: true,
             args: ['--no-sandbox', '--disable-dev-shm-usage']
         });
@@ -317,12 +52,195 @@ app.get('/quick-test', async (req, res) => {
         
         res.json({
             success: true,
-            message: 'Browser test passed',
-            title: title,
+            message: 'Playwright is working!',
+            title: title
+        });
+        
+    } catch (error) {
+        if (browser) await browser.close();
+        
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Playwright test failed'
+        });
+    }
+});
+
+// Test Cloud Storage
+app.get('/test-storage', async (req, res) => {
+    log('Testing Cloud Storage');
+    
+    try {
+        const [buckets] = await storage.getBuckets();
+        const bucketName = process.env.BUCKET_NAME || 'keep-profile-store';
+        const bucket = storage.bucket(bucketName);
+        
+        // Check if profile exists
+        const [files] = await bucket.getFiles();
+        const profileExists = files.some(f => f.name === 'profile.zip');
+        
+        res.json({
+            success: true,
+            bucketCount: buckets.length,
+            profileExists: profileExists,
+            files: files.map(f => f.name)
+        });
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Generate quote endpoint
+app.get('/generate-quote', async (req, res) => {
+    log('Generating quote');
+    
+    try {
+        if (!process.env.GEMINI_API_KEY) {
+            throw new Error('GEMINI_API_KEY not set');
+        }
+        
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = "Generate a short, inspirational quote about technology and life.";
+        const result = await model.generateContent(prompt);
+        const quote = result.response.text().trim();
+        
+        res.json({
+            success: true,
+            quote: quote
+        });
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            fallbackQuote: "The only way to do great work is to love what you do. - Steve Jobs"
+        });
+    }
+});
+
+// Main automation endpoint
+app.post('/scheduled-quote', async (req, res) => {
+    log('Starting scheduled quote job');
+    
+    try {
+        // 1. Generate quote
+        log('Step 1: Generating quote');
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = "Generate a short, inspirational quote for today. Make it unique.";
+        const result = await model.generateContent(prompt);
+        const quote = result.response.text().trim();
+        
+        log(`Generated quote: ${quote.substring(0, 100)}...`);
+        
+        // 2. Download Chrome profile
+        log('Step 2: Downloading Chrome profile');
+        const bucketName = process.env.BUCKET_NAME || 'keep-profile-store';
+        const zipPath = '/tmp/profile.zip';
+        const profileDir = '/tmp/profile';
+        
+        // Clean up old files
+        if (fs.existsSync(profileDir)) {
+            fs.rmSync(profileDir, { recursive: true });
+        }
+        if (fs.existsSync(zipPath)) {
+            fs.unlinkSync(zipPath);
+        }
+        
+        // Download from GCS
+        await storage.bucket(bucketName)
+            .file('profile.zip')
+            .download({ destination: zipPath });
+        
+        // Extract
+        fs.mkdirSync(profileDir, { recursive: true });
+        await new Promise((resolve, reject) => {
+            fs.createReadStream(zipPath)
+                .pipe(unzipper.Extract({ path: profileDir }))
+                .on('close', resolve)
+                .on('error', reject);
+        });
+        
+        // 3. Launch browser with profile
+        log('Step 3: Launching browser');
+        const browser = await chromium.launchPersistentContext(profileDir, {
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu'
+            ],
+            viewport: { width: 1280, height: 720 }
+        });
+        
+        const page = await browser.newPage();
+        
+        // 4. Navigate to Google Keep
+        log('Step 4: Navigating to Google Keep');
+        await page.goto('https://keep.google.com', {
+            waitUntil: 'networkidle',
+            timeout: 30000
+        });
+        
+        // Wait for page to load
+        await page.waitForTimeout(5000);
+        
+        // Take screenshot for debugging
+        const screenshotPath = '/tmp/keep-screenshot.png';
+        await page.screenshot({ path: screenshotPath });
+        log(`Screenshot saved to ${screenshotPath}`);
+        
+        // 5. Create note
+        log('Step 5: Creating note');
+        
+        // Try to find and click the "Take a note" button
+        const noteButton = await page.$('div[aria-label="Take a note"]') ||
+                          await page.$('div[role="button"][aria-label*="Take"]') ||
+                          await page.$('textarea[aria-label="Note"]');
+        
+        if (noteButton) {
+            await noteButton.click();
+            await page.waitForTimeout(1000);
+        } else {
+            // Fallback: use keyboard shortcut
+            await page.keyboard.press('c');
+            await page.waitForTimeout(1000);
+        }
+        
+        // Type the quote
+        await page.keyboard.type(quote);
+        await page.waitForTimeout(1000);
+        
+        // Save note (Escape key)
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(3000);
+        
+        // 6. Cleanup
+        log('Step 6: Cleaning up');
+        await browser.close();
+        
+        // Remove profile files
+        fs.rmSync(profileDir, { recursive: true });
+        fs.unlinkSync(zipPath);
+        
+        log('Job completed successfully!');
+        
+        res.json({
+            success: true,
+            message: 'Quote added to Google Keep',
+            quote: quote,
             timestamp: new Date().toISOString()
         });
         
     } catch (error) {
+        log(`Job failed: ${error.message}`);
+        log(`Stack: ${error.stack}`);
+        
         res.status(500).json({
             success: false,
             error: error.message,
@@ -331,7 +249,7 @@ app.get('/quick-test', async (req, res) => {
     }
 });
 
-// Home page
+// Home page with test links
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -339,36 +257,86 @@ app.get('/', (req, res) => {
         <head>
             <title>Google Keep Bot</title>
             <style>
-                body { font-family: Arial, sans-serif; padding: 20px; }
-                .button { 
-                    display: inline-block; 
+                body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+                h1 { color: #4285f4; }
+                .test-box { 
+                    background: #f5f5f5; 
+                    padding: 15px; 
+                    margin: 10px 0; 
+                    border-radius: 5px;
+                    border-left: 4px solid #4285f4;
+                }
+                button { 
                     padding: 10px 20px; 
-                    margin: 10px; 
                     background: #4285f4; 
                     color: white; 
-                    text-decoration: none; 
-                    border-radius: 5px; 
+                    border: none; 
+                    border-radius: 4px; 
+                    cursor: pointer;
+                    margin: 5px;
                 }
-                .log { background: #f5f5f5; padding: 20px; margin: 20px 0; font-family: monospace; }
+                button:hover { background: #3367d6; }
+                #result { 
+                    background: #e8f5e9; 
+                    padding: 15px; 
+                    margin: 20px 0; 
+                    border-radius: 5px;
+                    display: none;
+                }
+                pre { background: #263238; color: white; padding: 15px; border-radius: 5px; overflow: auto; }
             </style>
         </head>
         <body>
             <h1>🚀 Google Keep Quote Bot</h1>
+            <p>Automatically add AI-generated quotes to Google Keep</p>
             
-            <h2>Quick Actions:</h2>
-            <a href="/health" class="button">Health Check</a>
-            <a href="/test" class="button">Run Full Test</a>
-            <a href="/quick-test" class="button">Quick Browser Test</a>
+            <div class="test-box">
+                <h3>1. Health Check</h3>
+                <button onclick="testEndpoint('/health')">Test Health</button>
+            </div>
             
-            <h2>Test Automation:</h2>
-            <button onclick="runTest()" class="button">Test /scheduled-quote</button>
+            <div class="test-box">
+                <h3>2. Test Playwright</h3>
+                <button onclick="testEndpoint('/test-playwright')">Test Browser</button>
+            </div>
             
-            <div id="result" class="log"></div>
+            <div class="test-box">
+                <h3>3. Test Storage</h3>
+                <button onclick="testEndpoint('/test-storage')">Test Cloud Storage</button>
+            </div>
+            
+            <div class="test-box">
+                <h3>4. Test Gemini</h3>
+                <button onclick="testEndpoint('/generate-quote')">Generate Test Quote</button>
+            </div>
+            
+            <div class="test-box">
+                <h3>5. Run Full Automation</h3>
+                <button onclick="runAutomation()">Add Quote to Google Keep</button>
+                <p><small>This will actually add a quote to your Google Keep</small></p>
+            </div>
+            
+            <div id="result"></div>
             
             <script>
-                async function runTest() {
+                async function testEndpoint(url) {
                     const resultDiv = document.getElementById('result');
-                    resultDiv.innerHTML = 'Running test...';
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = '<p>Testing... ⏳</p>';
+                    
+                    try {
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        resultDiv.innerHTML = '<h4>Result:</h4><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    } catch (error) {
+                        resultDiv.innerHTML = '<h4>Error:</h4><pre>' + error.message + '</pre>';
+                    }
+                }
+                
+                async function runAutomation() {
+                    const resultDiv = document.getElementById('result');
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = '<p>Running automation... This may take 30-60 seconds ⏳</p>';
                     
                     try {
                         const response = await fetch('/scheduled-quote', {
@@ -377,9 +345,13 @@ app.get('/', (req, res) => {
                         });
                         
                         const data = await response.json();
-                        resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                        if (data.success) {
+                            resultDiv.innerHTML = '<h4>✅ Success!</h4><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                        } else {
+                            resultDiv.innerHTML = '<h4>❌ Failed</h4><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                        }
                     } catch (error) {
-                        resultDiv.innerHTML = 'Error: ' + error.message;
+                        resultDiv.innerHTML = '<h4>❌ Error:</h4><pre>' + error.message + '</pre>';
                     }
                 }
             </script>
@@ -390,7 +362,7 @@ app.get('/', (req, res) => {
 
 // Start server
 app.listen(port, () => {
-    log(`Server started on port ${port}`);
-    log(`Test endpoint: http://localhost:${port}/test`);
-    log(`Health check: http://localhost:${port}/health`);
+    console.log(`🚀 Server running on port ${port}`);
+    console.log(`🌐 Open http://localhost:${port} to test`);
+    console.log(`🏥 Health check: http://localhost:${port}/health`);
 });
