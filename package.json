@@ -1,17 +1,19 @@
 {
-    "name": "google-keep-bot",
-    "version": "1.0.0",
-    "description": "Automatically add AI-generated quotes to Google Keep",
-    "main": "index.js",
-    "scripts": {
-        "start": "node index.js",
-        "test": "node test.js"
-    },
-    "dependencies": {
-        "@google-cloud/storage": "^7.0.0",
-        "@google/generative-ai": "^0.21.0",
-        "playwright": "^1.57.0",
-        "unzipper": "^0.10.12",
-        "express": "^4.19.2"
-    }
+  "name": "google-keep-bot",
+  "version": "3.0.0",
+  "description": "Robust Google Keep automation with Chrome",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js",
+    "docker:build": "docker build -t keep-bot .",
+    "docker:run": "docker run -p 8080:8080 -e GEMINI_API_KEY=test -e BUCKET_NAME=test keep-bot"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.0.0",
+    "@google/generative-ai": "^0.21.0",
+    "playwright": "^1.57.0",
+    "unzipper": "^0.10.12",
+    "express": "^4.19.2"
+  }
 }
